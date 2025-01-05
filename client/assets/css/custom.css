@@ -1,0 +1,27 @@
+.sidebar {
+    height: 100%;
+    width: 250px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background-color: #f8f9fa;
+    padding: 15px;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+}
+.table-container {
+    margin-left: 270px;
+}
+.table-container table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.table-container table th, .table-container table td {
+    padding: 8px;
+    text-align: left;
+}
+.table-container table th {
+    background-color: #f8f9fa;
+}
+.table-container table td {
+    border-top: 1px solid #dee2e6;
+}

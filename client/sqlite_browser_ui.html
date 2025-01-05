@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en-US" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQLite Web-based</title>
+    <link type="text/css" href="assets/css/bootstrap.min.css" rel="stylesheet">
+    <link type="text/css" href="assets/css/codemirror.min.css" rel="stylesheet">
+    <link type="text/css" href="assets/css/custom.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-3">
+                <h4>Tables</h4>
+                <ul id="tables-list" class="list-unstyled"></ul>
+            </div>
+            <div class="col-9">
+                <h2>SQL Editor</h2>
+                <div class="mb-3">
+                    <textarea id="commands" class="form-control" rows="10"></textarea>
+                </div>
+                <button id="execute" class="btn btn-primary">Execute SQL</button>
+                <button id="savedb" class="btn btn-success">Save Database</button>
+                <input type="file" id="dbfile" class="form-control mt-3" accept=".db">
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div id="output"></div>
+                <div id="error" class="alert alert-danger mt-3" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="assets/js/codemirror.min.js"></script>
+    <script type="text/javascript" src="assets/js/sql.min.js"></script>
+    <script type="text/javascript" src="assets/js/script.js"></script>
+    <script src="assets/js/popper.min.js"></script>
+    <script src="assets/js/bootstrap.min.js"></script>
+</body>
+</html>

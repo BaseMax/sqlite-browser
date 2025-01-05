@@ -5,7 +5,7 @@ const http = require('http');
 const PORT = 4848;
 
 const server = http.createServer((req, res) => {
-    const filePath = path.join(__dirname, req.url === '/' ? 'sqlite_browser_ui.html' : req.url);
+    const filePath = path.join(__dirname, "client/", req.url === '/' ? 'sqlite_browser_ui.html' : req.url);
 
     const extname = path.extname(filePath);
     const contentType = {
