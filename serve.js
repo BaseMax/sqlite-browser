@@ -5,9 +5,18 @@ const http = require('http');
 const PORT = 4848;
 
 const server = http.createServer((req, res) => {
-    const filePath = path.join(__dirname, "client/", req.url === '/' ? 'sqlite_browser_ui.html' : req.url);
+    let requestedPath = req.url === '/' ? 'sqlite_browser_ui.html' : req.url;
 
-    const extname = path.extname(filePath);
+    const filePath = path.join(__dirname, "client", requestedPath);
+
+    const normalizedPath = path.normalize(filePath);
+    if (!normalizedPath.startsWith(path.join(__dirname, "client"))) {
+        res.writeHead(403, { 'Content-Type': 'text/html' });
+        res.end('<h1>403 Forbidden</h1>', 'utf8');
+        return;
+    }
+
+    const extname = path.extname(normalizedPath);
     const contentType = {
         '.html': 'text/html',
         '.css': 'text/css',
@@ -17,7 +26,7 @@ const server = http.createServer((req, res) => {
         '.ico': 'image/x-icon',
     }[extname] || 'application/octet-stream';
 
-    fs.readFile(filePath, (err, content) => {
+    fs.readFile(normalizedPath, (err, content) => {
         if (err) {
             if (err.code === 'ENOENT') {
                 res.writeHead(404, { 'Content-Type': 'text/html' });
