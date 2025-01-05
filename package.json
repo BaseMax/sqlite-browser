@@ -1,0 +1,17 @@
+{
+    "name": "sqlite-browser",
+    "version": "1.0.0",
+    "description": "A simple web-based SQLite browser built with Node.js",
+    "main": "serve.js",
+    "scripts": {
+        "start": "node serve.js"
+    },
+    "dependencies": {},
+    "devDependencies": {},
+    "engines": {
+        "node": ">=14.0.0"
+    },
+    "license": "MIT",
+    "author": "Max Base",
+    "copyright": "2025 Max Base"
+}
