@@ -1,142 +1,169 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-US" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SQLite Browser</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
-    <style>
-        #tableList {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        table {
-            margin-top: 20px;
-        }
-    </style>
+    <title>SQL.js with Worker</title>
+    <link href="bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.63.3/codemirror.min.css" rel="stylesheet">
 </head>
 <body>
-    <div class="container my-5">
-        <h1 class="text-center mb-4">SQLite Browser</h1>
-
-        <div class="mb-3">
-            <label for="dbFile" class="form-label">Choose SQLite Database File:</label>
-            <input type="file" id="dbFile" class="form-control">
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-12">
+                <h2>SQL Editor</h2>
+                <div class="mb-3">
+                    <textarea id="commands" class="form-control" rows="10"></textarea>
+                </div>
+                <button id="execute" class="btn btn-primary">Execute SQL</button>
+                <button id="savedb" class="btn btn-success">Save Database</button>
+                <input type="file" id="dbfile" class="form-control mt-3" accept=".db">
+            </div>
         </div>
 
-        <div class="row">
-            <div class="col-md-4">
-                <h5>Tables</h5>
-                <ul id="tableList" class="list-group"></ul>
-            </div>
-            <div class="col-md-8">
-                <h5>SQL Query</h5>
-                <textarea id="query" class="form-control" rows="5" placeholder="Enter your SQL query here..."></textarea>
-                <button id="executeQuery" class="btn btn-primary mt-3">Run Query</button>
-                <div id="queryResult" class="mt-4"></div>
+        <div class="row mt-4">
+            <div class="col-12">
+                <div id="output"></div>
+                <div id="error" class="alert alert-danger mt-3" style="display: none;"></div>
             </div>
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.63.3/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.63.3/mode/sql/sql.min.js"></script>
     <script>
-        let db;
+        var execBtn = document.getElementById("execute");
+        var outputElm = document.getElementById('output');
+        var errorElm = document.getElementById('error');
+        var commandsElm = document.getElementById('commands');
+        var dbFileElm = document.getElementById('dbfile');
+        var savedbElm = document.getElementById('savedb');
 
-        window.onload = async () => {
-            await initDatabase();
-        };
+        var worker = new Worker("worker.sql-wasm.js");
+        worker.onerror = error;
 
-        async function initDatabase() {
-            if (!window.SQL) {
-                console.error("SQL.js failed to load!");
-                return;
+        worker.postMessage({ action: 'open' });
+
+        function print(text) {
+            outputElm.innerHTML = text.replace(/\n/g, '<br>');
+        }
+
+        function error(e) {
+            console.log(e);
+            errorElm.style.display = 'block';
+            errorElm.textContent = e.message;
+        }
+
+        function noerror() {
+            errorElm.style.display = 'none';
+        }
+
+        function execute(commands) {
+            tic();
+            worker.onmessage = function (event) {
+                var results = event.data.results;
+                toc("Executing SQL");
+                if (!results) {
+                    error({ message: event.data.error });
+                    return;
+                }
+
+                tic();
+                outputElm.innerHTML = "";
+                for (var i = 0; i < results.length; i++) {
+                    outputElm.appendChild(tableCreate(results[i].columns, results[i].values));
+                }
+                toc("Displaying results");
+            };
+            worker.postMessage({ action: 'exec', sql: commands });
+            outputElm.textContent = "Fetching results...";
+        }
+
+        var tableCreate = function () {
+            function valconcat(vals, tagName) {
+                if (vals.length === 0) return '';
+                var open = '<' + tagName + '>', close = '</' + tagName + '>';
+                return open + vals.join(close + open) + close;
             }
+            return function (columns, values) {
+                var tbl = document.createElement('table');
+                var html = '<thead>' + valconcat(columns, 'th') + '</thead>';
+                var rows = values.map(function (v) { return valconcat(v, 'td'); });
+                html += '<tbody>' + valconcat(rows, 'tr') + '</tbody>';
+                tbl.innerHTML = html;
+                return tbl;
+            };
+        }();
 
-            document.getElementById('dbFile').addEventListener('change', async (event) => {
-                const file = event.target.files[0];
-                if (!file) return;
+        function execEditorContents() {
+            noerror()
+            execute(editor.getValue() + ';');
+        }
+        execBtn.addEventListener("click", execEditorContents, true);
 
-                const arrayBuffer = await file.arrayBuffer();
-                db = new SQL.Database(new Uint8Array(arrayBuffer));
-                loadTables();
-            });
+        var tictime;
+        if (!window.performance || !performance.now) { window.performance = { now: Date.now } }
+        function tic() { tictime = performance.now() }
+        function toc(msg) {
+            var dt = performance.now() - tictime;
+            console.log((msg || 'toc') + ": " + dt + "ms");
         }
 
-        async function loadTables() {
-            if (!db) return;
-
-            try {
-                const tables = db.exec(`
-                    SELECT name 
-                    FROM sqlite_master 
-                    WHERE type='table' AND name NOT LIKE 'sqlite_%';
-                `);
-
-                const tableList = document.getElementById('tableList');
-                tableList.innerHTML = '';
-
-                tables[0].values.forEach((table) => {
-                    const li = document.createElement('li');
-                    li.className = 'list-group-item list-group-item-action';
-                    li.textContent = table[0];
-                    li.addEventListener('click', () => browseTable(table[0]));
-                    tableList.appendChild(li);
-                });
-            } catch (err) {
-                alert(`Error loading tables: ${err.message}`);
+        var editor = CodeMirror.fromTextArea(commandsElm, {
+            mode: 'text/x-mysql',
+            viewportMargin: Infinity,
+            indentWithTabs: true,
+            smartIndent: true,
+            lineNumbers: true,
+            matchBrackets: true,
+            autofocus: true,
+            extraKeys: {
+                "Ctrl-Enter": execEditorContents,
+                "Ctrl-S": savedb,
             }
-        }
-
-        async function browseTable(tableName) {
-            if (!db) return;
-
-            const query = `SELECT * FROM ${tableName};`;
-            executeSQL(query);
-        }
-
-        document.getElementById('executeQuery').addEventListener('click', () => {
-            const query = document.getElementById('query').value;
-            executeSQL(query);
         });
 
-        function executeSQL(query) {
-            if (!db) return;
+        dbFileElm.onchange = function () {
+            var f = dbFileElm.files[0];
+            var r = new FileReader();
+            r.onload = function () {
+                worker.onmessage = function () {
+                    toc("Loading database from file");
+                    editor.setValue("SELECT `name`, `sql`\n  FROM `sqlite_master`\n  WHERE type='table';");
+                    execEditorContents();
+                };
+                tic();
+                try {
+                    worker.postMessage({ action: 'open', buffer: r.result }, [r.result]);
+                } catch (exception) {
+                    worker.postMessage({ action: 'open', buffer: r.result });
+                }
+            };
+            r.readAsArrayBuffer(f);
+        };
 
-            try {
-                const results = db.exec(query);
-                displayResults(results[0]);
-            } catch (err) {
-                document.getElementById('queryResult').innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
-            }
+        function savedb() {
+            worker.onmessage = function (event) {
+                toc("Exporting the database");
+                var arraybuff = event.data.buffer;
+                var blob = new Blob([arraybuff]);
+                var a = document.createElement("a");
+                document.body.appendChild(a);
+                a.href = window.URL.createObjectURL(blob);
+                a.download = "sql.db";
+                a.onclick = function () {
+                    setTimeout(function () {
+                        window.URL.revokeObjectURL(a.href);
+                    }, 1500);
+                };
+                a.click();
+            };
+            tic();
+            worker.postMessage({ action: 'export' });
         }
-
-        function displayResults(result) {
-            const resultDiv = document.getElementById('queryResult');
-            if (!result || result.values.length === 0) {
-                resultDiv.innerHTML = '<div class="alert alert-info">No results found.</div>';
-                return;
-            }
-
-            let columns = result.columns;
-            let tableHtml = '<table class="table table-striped">';
-            tableHtml += '<thead><tr>';
-
-            columns.forEach((column) => {
-                tableHtml += `<th>${column}</th>`;
-            });
-            tableHtml += '</tr></thead><tbody>';
-
-            result.values.forEach((row) => {
-                tableHtml += '<tr>';
-                columns.forEach((column, idx) => {
-                    tableHtml += `<td>${row[idx]}</td>`;
-                });
-                tableHtml += '</tr>';
-            });
-
-            tableHtml += '</tbody></table>';
-            resultDiv.innerHTML = tableHtml;
-        }
+        savedbElm.addEventListener("click", savedb, true);
     </script>
+    <script src="popper.min.js"></script>
+    <script src="bootstrap.min.js"></script>
 </body>
 </html>
