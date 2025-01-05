@@ -5,6 +5,7 @@ const commandsElm = document.getElementById('commands');
 const dbFileElm = document.getElementById('dbfile');
 const savedbElm = document.getElementById('savedb');
 const tablesListElm = document.getElementById('tables-list');
+const editorContainerElm = document.getElementById('editor-container');
 
 const INITIAL_SQL_QUERY = "SELECT `name`, `sql`\n  FROM `sqlite_master`\n  WHERE type='table';";
 const worker = new Worker("assets/js/worker.sql-wasm.js");
@@ -90,19 +91,7 @@ function toc(msg) {
     console.log((msg || 'toc') + ": " + dt + "ms");
 }
 
-const editor = CodeMirror.fromTextArea(commandsElm, {
-    mode: 'text/x-mysql',
-    viewportMargin: Infinity,
-    indentWithTabs: true,
-    smartIndent: true,
-    lineNumbers: true,
-    matchBrackets: true,
-    autofocus: true,
-    extraKeys: {
-        "Ctrl-Enter": execEditorContents,
-        "Ctrl-S": savedb,
-    }
-});
+let editor = undefined;
 
 dbFileElm.onchange = function () {
     var f = dbFileElm.files[0];
@@ -111,14 +100,28 @@ dbFileElm.onchange = function () {
         r.onload = function () {
             console.log('File loaded:', f.name);
             worker.onmessage = function (e) {
-                console.log('Worker response:', e.data);
+                console.log('Worker response:', e.data); 
+
+                editor = CodeMirror.fromTextArea(commandsElm, {
+                    mode: 'text/x-mysql',
+                    viewportMargin: Infinity,
+                    indentWithTabs: true,
+                    smartIndent: true,
+                    lineNumbers: true,
+                    matchBrackets: true,
+                    autofocus: true,
+                    extraKeys: {
+                        "Ctrl-Enter": execEditorContents,
+                        "Ctrl-S": savedb,
+                    }
+                });
+                editorContainerElm.classList.remove('hidden');
+                execBtn.classList.remove('hidden');
+                savedbElm.classList.remove('hidden');
+
                 toc("Loading database from file");
                 editor.setValue(INITIAL_SQL_QUERY);
                 execEditorContents();
-                
-                document.getElementById('editor-container').style.display = 'block';
-                document.getElementById('execute').style.display = 'inline-block';
-                document.getElementById('savedb').style.display = 'inline-block';
             };
             tic();
             try {
