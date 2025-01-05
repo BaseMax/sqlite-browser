@@ -77,7 +77,7 @@ function execEditorContents() {
         alert("No SQL query to execute");
         return;
     }
-    
+
     execute(editorValue.endsWith(';') ? editorValue : editorValue + ';');
 }
 execBtn.addEventListener("click", execEditorContents, true);
@@ -115,6 +115,10 @@ dbFileElm.onchange = function () {
                 toc("Loading database from file");
                 editor.setValue(INITIAL_SQL_QUERY);
                 execEditorContents();
+                
+                document.getElementById('editor-container').style.display = 'block';
+                document.getElementById('execute').style.display = 'inline-block';
+                document.getElementById('savedb').style.display = 'inline-block';
             };
             tic();
             try {

@@ -17,11 +17,11 @@
             </div>
             <div class="col-9">
                 <h2>SQL Editor</h2>
-                <div class="mb-3">
+                <div class="mb-3" id="editor-container" style="display: none;">
                     <textarea id="commands" class="form-control" rows="10"></textarea>
                 </div>
-                <button id="execute" class="btn btn-primary">Execute SQL</button>
-                <button id="savedb" class="btn btn-success">Save Database</button>
+                <button id="execute" class="btn btn-primary" style="display: none;">Execute SQL</button>
+                <button id="savedb" class="btn btn-success" style="display: none;">Save Database</button>
                 <input type="file" id="dbfile" class="form-control mt-3" accept=".db">
             </div>
         </div>
